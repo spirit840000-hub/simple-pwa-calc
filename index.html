@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA 簡單計算機</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <style>
+        :root {
+            --bg-color: #f3f4f6;
+            --calc-bg: #ffffff;
+            --text-primary: #1f2937;
+            --accent: #2563eb;
+            --btn-bg: #e5e7eb;
+            --btn-hover: #d1d5db;
+            --op-bg: #3b82f6;
+            --op-hover: #2563eb;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #111827;
+                --calc-bg: #1f2937;
+                --text-primary: #f9fafb;
+                --accent: #3b82f6;
+                --btn-bg: #374151;
+                --btn-hover: #4b5563;
+                --op-bg: #2563eb;
+                --op-hover: #1d4ed8;
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            transition: background-color 0.3s;
+        }
+
+        .calculator {
+            background-color: var(--calc-bg);
+            width: 100%;
+            max-width: 360px;
+            padding: 20px;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            user-select: none;
+        }
+
+        .display {
+            margin-bottom: 20px;
+            text-align: right;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            word-wrap: break-word;
+            overflow: hidden;
+        }
+
+        .prev-operand {
+            font-size: 1rem;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+
+        .curr-operand {
+            font-size: 2.25rem;
+            color: var(--text-primary);
+            font-weight: bold;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        button {
+            border: none;
+            outline: none;
+            padding: 16px;
+            font-size: 1.25rem;
+            border-radius: 12px;
+            cursor: pointer;
+            background-color: var(--btn-bg);
+            color: var(--text-primary);
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button:hover {
+            background-color: var(--btn-hover);
+        }
+
+        button.operator {
+            background-color: var(--op-bg);
+            color: white;
+        }
+
+        button.operator:hover {
+            background-color: var(--op-hover);
+        }
+
+        button.span-two {
+            grid-column: span 2;
+        }
+
+        button.clear {
+            color: #ef4444;
+        }
+
+        /* 安裝提示橫幅樣式 */
+        #install-banner {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            display: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calculator">
+        <div class="display">
+            <div class="prev-operand" id="prev-display"></div>
+            <div class="curr-operand" id="curr-display">0</div>
+        </div>
+        <div class="buttons">
+            <button class="clear span-two" onclick="clearDisplay()">AC</button>
+            <button onclick="deleteNumber()">DEL</button>
+            <button class="operator" onclick="chooseOperator('÷')">÷</button>
+            
+            <button onclick="appendNumber('7')">7</button>
+            <button onclick="appendNumber('8')">8</button>
+            <button onclick="appendNumber('9')">9</button>
+            <button class="operator" onclick="chooseOperator('×')">×</button>
+            
+            <button onclick="appendNumber('4')">4</button>
+            <button onclick="appendNumber('5')">5</button>
+            <button onclick="appendNumber('6')">6</button>
+            <button class="operator" onclick="chooseOperator('-')">-</button>
+            
+            <button onclick="appendNumber('1')">1</button>
+            <button onclick="appendNumber('2')">2</button>
+            <button onclick="appendNumber('3')">3</button>
+            <button class="operator" onclick="chooseOperator('+')">+</button>
+            
+            <button onclick="appendNumber('.')">.</button>
+            <button onclick="appendNumber('0')">0</button>
+            <button class="operator span-two" onclick="compute()">=</button>
+        </div>
+    </div>
+
+    <div id="install-banner">安裝計算機到桌面</div>
+
+    <script>
+        let currentOperand = '0';
+        let previousOperand = '';
+        let operation = undefined;
+
+        const currDisplayElement = document.getElementById('curr-display');
+        const prevDisplayElement = document.getElementById('prev-display');
+
+        function updateDisplay() {
+            currDisplayElement.innerText = currentOperand;
+            if (operation != null) {
+                prevDisplayElement.innerText = `${previousOperand} ${operation}`;
+            } else {
+                prevDisplayElement.innerText = '';
+            }
+        }
+
+        function appendNumber(number) {
+            if (number === '.' && currentOperand.includes('.')) return;
+            if (currentOperand === '0' && number !== '.') {
+                currentOperand = number.toString();
+            } else {
+                currentOperand = currentOperand.toString() + number.toString();
+            }
+            updateDisplay();
+        }
+
+        function chooseOperator(op) {
+            if (currentOperand === '') return;
+            if (previousOperand !== '') {
+                compute();
+            }
+            operation = op;
+            previousOperand = currentOperand;
+            currentOperand = '0';
+            updateDisplay();
+        }
+
+        function clearDisplay() {
+            currentOperand = '0';
+            previousOperand = '';
+            operation = undefined;
+            updateDisplay();
+        }
+
+        function deleteNumber() {
+            if (currentOperand === '0') return;
+            currentOperand = currentOperand.toString().slice(0, -1);
+            if (currentOperand === '') currentOperand = '0';
+            updateDisplay();
+        }
+
+        function compute() {
+            let computation;
+            const prev = parseFloat(previousOperand);
+            const current = parseFloat(currentOperand);
+            if (isNaN(prev) || isNaN(current)) return;
+
+            switch (operation) {
+                case '+':
+                    computation = prev + current;
+                    break;
+                case '-':
+                    computation = prev - current;
+                    break;
+                case '×':
+                    computation = prev * current;
+                    break;
+                case '÷':
+                    if (current === 0) {
+                        currentOperand = "錯誤";
+                        updateDisplay();
+                        return;
+                    }
+                    computation = prev / current;
+                    break;
+                default:
+                    return;
+            }
+
+            currentOperand = computation.toString();
+            operation = undefined;
+            previousOperand = '';
+            updateDisplay();
+        }
+
+        // 註冊 Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker 註冊成功'))
+                    .catch(err => console.log('Service Worker 註冊失敗: ', err));
+            });
+        }
+
+        // 處理安裝提示
+        let deferredPrompt;
+        const installBanner = document.getElementById('install-banner');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBanner.style.display = 'block';
+        });
+
+        installBanner.addEventListener('click', () => {
+            installBanner.style.display = 'none';
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('使用者接受安裝');
+                }
+                deferredPrompt = null;
+            });
+        });
+    </script>
+</body>
+</html>

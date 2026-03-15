@@ -1,0 +1,17 @@
+{
+  "name": "簡單計算機 PWA",
+  "short_name": "計算機",
+  "description": "一個支援離線使用的簡單計算機 PWA 範例。",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "icons/icon512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
