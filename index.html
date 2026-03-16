@@ -58,28 +58,113 @@
             background-color: var(--calc-bg);
             width: 100%;
             max-width: 380px;
-            padding: 24px;
+            height: 600px; /* 固定高度，確保正反面大小完全相同且不會隨內容伸縮 */
+            max-height: 95vh;
             border-radius: 24px;
             box-shadow: var(--shadow);
             user-select: none;
+            position: relative;
+            overflow: hidden; /* 確保切換頁面時邊緣平滑 */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 主畫面 (正面) */
+        .calc-front {
+            padding: 24px;
             display: flex;
             flex-direction: column;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Memo 畫面 (背面) */
+        .calc-back {
+            padding: 24px;
+            display: none; /* 預設隱藏 */
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            background-color: var(--calc-bg);
         }
 
         /* 顯示螢幕 */
         .display {
+            position: relative;
             margin-bottom: 20px;
             text-align: right;
             padding: 20px;
+            padding-top: 40px; /* 留空間給 memo 按鈕 */
             background: rgba(0, 0, 0, 0.05);
             border-radius: 16px;
-            min-height: 100px;
+            height: 130px; /* 直向/電腦模式下固定高度 (約一行的空間) */
+            flex-shrink: 0; /* 防止螢幕被按鈕區塊壓縮 */
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
             word-wrap: break-word;
             overflow: hidden;
+        }
+
+        /* 切換按鈕 */
+        .memo-toggle-btn {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: var(--btn-bg);
+            border: none;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .memo-toggle-btn:hover { background: var(--btn-hover); }
+
+        /* 模式選擇器 */
+        .mode-selector {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--btn-bg);
+            border: none;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            padding: 6px 10px;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            outline: none;
+            appearance: none;
+            text-align: center;
+        }
+        .mode-selector:hover { background: var(--btn-hover); }
+
+        /* 顯示容器 */
+        .calc-display-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            width: 100%;
+            height: 100%;
+        }
+
+        .input-display-container {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            text-align: right;
+            font-size: 1.4rem;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-break: break-all;
+            padding-top: 10px;
         }
 
         .prev-operand {
@@ -100,13 +185,16 @@
         .buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(5, 1fr); /* 均分 5 列按鈕的高度 */
             gap: 12px;
+            flex: 1; /* 填滿計算機剩餘的高度空間 */
         }
 
-        button {
+        .buttons button {
             border: none;
             outline: none;
-            padding: 18px;
+            width: 100%;
+            height: 100%;
             font-size: 1.4rem;
             border-radius: 14px;
             cursor: pointer;
@@ -119,48 +207,115 @@
             font-weight: 500;
         }
 
-        button:active {
+        .buttons button:active {
             transform: scale(0.92);
             filter: brightness(0.9);
         }
 
         @media (hover: hover) {
-            button:hover {
-                background-color: var(--btn-hover);
-            }
-            button.operator:hover {
-                background-color: var(--op-hover);
-            }
+            .buttons button:hover { background-color: var(--btn-hover); }
+            .buttons button.operator:hover { background-color: var(--op-hover); }
         }
 
-        button.operator {
+        .buttons button.operator {
             background-color: var(--op-bg);
             color: white;
         }
 
-        button.span-two {
-            grid-column: span 2;
-        }
+        .buttons button.span-two { grid-column: span 2; }
+        .buttons button.clear { color: #ef4444; }
 
-        button.clear {
-            color: #ef4444;
+        /* --- Memo 介面樣式 --- */
+        .memo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .memo-header button, .memo-actions button {
+            padding: 8px 14px;
+            font-size: 0.95rem;
+            background: var(--btn-bg);
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .memo-header button:active, .memo-actions button:active { transform: scale(0.95); }
+        .memo-actions { display: flex; gap: 8px; }
+
+        .memo-input {
+            flex-grow: 1;
+            width: 100%;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 1.5rem;
+            text-align: right; 
+            border: 2px solid var(--btn-bg);
+            background: rgba(0, 0, 0, 0.02);
+            color: var(--text-primary);
+            resize: none;
+            outline: none;
+            font-family: inherit;
+            margin-bottom: 12px;
+            line-height: 1.5;
+            overflow-y: auto; 
+        }
+        .memo-input:focus { border-color: var(--accent); background: transparent; }
+
+        .memo-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .memo-calc-btn {
+            flex: 0.8;
+            padding: 14px;
+            background: var(--op-bg);
+            color: white;
+            font-weight: bold;
+            border-radius: 12px;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+        .memo-calc-btn:active { transform: scale(0.95); }
+        
+        .memo-result {
+            flex: 1.2;
+            text-align: right;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--text-primary);
+            word-break: break-all;
         }
 
         /* --- 橫向模式 (Landscape) 優化 --- */
         @media (orientation: landscape) and (max-height: 500px) {
             .calculator {
-                flex-direction: row;
                 max-width: 95vw;
-                height: 90vh;
+                height: 90vh; /* 橫放時依螢幕高度動態調整 */
+            }
+
+            .calc-front {
+                flex-direction: row;
                 gap: 20px;
+                padding: 16px;
+            }
+
+            .calc-back {
                 padding: 16px;
             }
 
             .display {
                 flex: 1;
                 margin-bottom: 0;
-                height: 100%;
-                justify-content: center;
+                height: 100%; /* 橫放時解除 130px 限制，高度自動延展以顯示多行 */
+                justify-content: flex-end; 
             }
 
             .buttons {
@@ -168,29 +323,18 @@
                 gap: 8px;
             }
 
-            button {
-                padding: 10px;
+            .buttons button {
                 font-size: 1.1rem;
                 border-radius: 10px;
             }
 
-            .curr-operand {
-                font-size: 2rem;
-            }
-            
-            .prev-operand {
-                font-size: 0.9rem;
-            }
+            .curr-operand { font-size: 2rem; }
+            .prev-operand { font-size: 0.9rem; }
         }
 
         /* --- 大螢幕 (Desktop) 優化 --- */
         @media (min-width: 1024px) {
-            .calculator {
-                max-width: 420px;
-            }
-            button {
-                padding: 22px;
-            }
+            .calculator { max-width: 420px; height: 650px; } /* 在大螢幕下給予更舒適的固定高度 */
         }
 
         /* 安裝提示橫幅 */
@@ -215,42 +359,90 @@
             from { transform: translate(-50%, 100px); opacity: 0; }
             to { transform: translate(-50%, 0); opacity: 1; }
         }
+
+        /* Toast 提示訊息樣式 */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .toast.show { opacity: 1; }
     </style>
 </head>
 <body>
 
     <div class="calculator">
-        <div class="display">
-            <div class="prev-operand" id="prev-display"></div>
-            <div class="curr-operand" id="curr-display">0</div>
+        <!-- 主畫面 (正面) -->
+        <div class="calc-front" id="calc-front">
+            <div class="display">
+                <button class="memo-toggle-btn" onclick="toggleView()">📝 Memo</button>
+                <select id="mode-selector" class="mode-selector" onchange="toggleMode()">
+                    <option value="calc">🧮 計算機模式</option>
+                    <option value="input">📜 輸入模式</option>
+                </select>
+                
+                <div id="calc-display-container" class="calc-display-container">
+                    <div class="prev-operand" id="prev-display"></div>
+                    <div class="curr-operand" id="curr-display">0</div>
+                </div>
+
+                <div id="input-display-container" class="input-display-container"></div>
+            </div>
+            <div class="buttons">
+                <button class="clear span-two" onclick="clearDisplay()">AC</button>
+                <button onclick="deleteNumber()" style="font-size: 1.1rem;">⌫</button>
+                <button class="operator" onclick="chooseOperator('÷')">÷</button>
+                
+                <button onclick="appendNumber('7')">7</button>
+                <button onclick="appendNumber('8')">8</button>
+                <button onclick="appendNumber('9')">9</button>
+                <button class="operator" onclick="chooseOperator('×')">×</button>
+                
+                <button onclick="appendNumber('4')">4</button>
+                <button onclick="appendNumber('5')">5</button>
+                <button onclick="appendNumber('6')">6</button>
+                <button class="operator" onclick="chooseOperator('-')">-</button>
+                
+                <button onclick="appendNumber('1')">1</button>
+                <button onclick="appendNumber('2')">2</button>
+                <button onclick="appendNumber('3')">3</button>
+                <button class="operator" onclick="chooseOperator('+')">+</button>
+                
+                <button onclick="appendNumber('.')">.</button>
+                <button onclick="appendNumber('0')">0</button>
+                <button class="operator span-two" onclick="compute()">=</button>
+            </div>
         </div>
-        <div class="buttons">
-            <button class="clear span-two" onclick="clearDisplay()">AC</button>
-            <button onclick="deleteNumber()">DEL</button>
-            <button class="operator" onclick="chooseOperator('÷')">÷</button>
-            
-            <button onclick="appendNumber('7')">7</button>
-            <button onclick="appendNumber('8')">8</button>
-            <button onclick="appendNumber('9')">9</button>
-            <button class="operator" onclick="chooseOperator('×')">×</button>
-            
-            <button onclick="appendNumber('4')">4</button>
-            <button onclick="appendNumber('5')">5</button>
-            <button onclick="appendNumber('6')">6</button>
-            <button class="operator" onclick="chooseOperator('-')">-</button>
-            
-            <button onclick="appendNumber('1')">1</button>
-            <button onclick="appendNumber('2')">2</button>
-            <button onclick="appendNumber('3')">3</button>
-            <button class="operator" onclick="chooseOperator('+')">+</button>
-            
-            <button onclick="appendNumber('.')">.</button>
-            <button onclick="appendNumber('0')">0</button>
-            <button class="operator span-two" onclick="compute()">=</button>
+
+        <!-- Memo 畫面 (背面) -->
+        <div class="calc-back" id="calc-back">
+            <div class="memo-header">
+                <button onclick="toggleView()">🔙 返回</button>
+                <div class="memo-actions">
+                    <button onclick="clearMemo()">Clear</button>
+                    <button onclick="copyMemo()">Copy</button>
+                </div>
+            </div>
+            <textarea id="memo-input" class="memo-input" placeholder="計算過程會自動記錄在這裡..."></textarea>
+            <div class="memo-footer">
+                <button class="memo-calc-btn" onclick="calculateMemo()">計算</button>
+                <div class="memo-result" id="memo-result">總計: 0</div>
+            </div>
         </div>
     </div>
 
     <div id="install-banner">安裝到桌面</div>
+    <div id="toast" class="toast"></div>
 
     <script>
         let currentOperand = '0';
@@ -260,16 +452,111 @@
 
         const currDisplayElement = document.getElementById('curr-display');
         const prevDisplayElement = document.getElementById('prev-display');
+        const memoInput = document.getElementById('memo-input');
+        const memoResult = document.getElementById('memo-result');
 
-        function updateDisplay() {
-            // 處理數字過長顯示
-            let displayValue = currentOperand;
-            if (displayValue.length > 10) {
-                displayValue = parseFloat(displayValue).toPrecision(8);
+        // --- 畫面切換功能 ---
+        function toggleView() {
+            const front = document.getElementById('calc-front');
+            const back = document.getElementById('calc-back');
+            if (front.style.display === 'none') {
+                front.style.display = 'flex';
+                back.style.display = 'none';
+            } else {
+                front.style.display = 'none';
+                back.style.display = 'flex';
+            }
+        }
+
+        // --- 模式切換與同步功能 ---
+        function toggleMode() {
+            const mode = document.getElementById('mode-selector').value;
+            const calcDisplay = document.getElementById('calc-display-container');
+            const inputDisplay = document.getElementById('input-display-container');
+
+            if (mode === 'calc') {
+                calcDisplay.style.display = 'flex';
+                inputDisplay.style.display = 'none';
+            } else {
+                calcDisplay.style.display = 'none';
+                inputDisplay.style.display = 'flex';
+                syncInputModeDisplay();
+            }
+        }
+
+        function syncInputModeDisplay() {
+            const inputDisplay = document.getElementById('input-display-container');
+            // 單純反映 memo 的原始文字
+            inputDisplay.innerText = memoInput.value || '0';
+            inputDisplay.scrollTop = inputDisplay.scrollHeight;
+        }
+
+        // --- Memo 功能 ---
+        function clearMemo() {
+            memoInput.value = '';
+            memoResult.innerText = '總計: 0';
+            syncInputModeDisplay();
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function copyMemo() {
+            memoInput.select();
+            memoInput.setSelectionRange(0, 99999);
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('已複製到剪貼簿');
+                } else {
+                    showToast('複製失敗，請手動選取複製');
+                }
+            } catch (err) {
+                showToast('不支援複製功能，請手動複製');
+            }
+            window.getSelection().removeAllRanges();
+        }
+
+        // 獨立出核心的計算邏輯
+        function calculateMemoValue() {
+            const lines = memoInput.value.split('\n');
+            let totalSum = 0;
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                
+                // 轉換符號確保乘除法計算正常
+                let expr = line.replace(/[×xX]/g, '*').replace(/÷/g, '/');
+                expr = expr.replace(/[^\d.\s+\-*/()]/g, ''); 
+                
+                if (!expr) continue;
+
+                try {
+                    let val = new Function('return ' + expr)();
+                    if (typeof val === 'number' && !isNaN(val)) {
+                        totalSum += val;
+                    }
+                } catch (e) {
+                    console.warn('忽略無法計算的行:', line);
+                }
             }
             
-            currDisplayElement.innerText = displayValue;
-            
+            return parseFloat(totalSum.toFixed(10));
+        }
+
+        function calculateMemo() {
+            const totalSum = calculateMemoValue();
+            memoResult.innerText = `總計: ${totalSum}`;
+        }
+
+        // --- 計算機功能 ---
+        function updateDisplay() {
+            currDisplayElement.innerText = currentOperand;
             if (operation != null) {
                 prevDisplayElement.innerText = `${previousOperand} ${operation}`;
             } else {
@@ -281,9 +568,21 @@
             if (shouldResetDisplay) {
                 currentOperand = '';
                 shouldResetDisplay = false;
+                
+                // 防呆：如果剛按完等號(=)結算完成，重新輸入數字時自動換行
+                // 這樣新的數字就不會跟原本最後一行的數字黏在一起
+                if (operation === undefined && memoInput.value !== '' && !memoInput.value.endsWith('\n')) {
+                    memoInput.value += '\n';
+                }
             }
             
             if (number === '.' && currentOperand.includes('.')) return;
+            
+            // Memo 紀錄數字
+            memoInput.value += number;
+            memoInput.scrollTop = memoInput.scrollHeight;
+            syncInputModeDisplay();
+
             if (currentOperand === '0' && number !== '.') {
                 currentOperand = number.toString();
             } else if (currentOperand === '錯誤') {
@@ -298,8 +597,35 @@
             if (currentOperand === '錯誤') return;
             if (currentOperand === '') return;
             
+            // Memo 嚴格遵守換行與符號規則 (不改變歷史內容)
+            if (op === '+') {
+                if (memoInput.value !== '') memoInput.value += '\n';
+            } else if (op === '-') {
+                if (memoInput.value !== '') memoInput.value += '\n- ';
+                else memoInput.value += '- ';
+            } else if (op === '×') {
+                memoInput.value += ' × ';
+            } else if (op === '÷') {
+                memoInput.value += ' ÷ ';
+            }
+            memoInput.scrollTop = memoInput.scrollHeight;
+            syncInputModeDisplay();
+
             if (previousOperand !== '') {
-                compute();
+                // 如果連續按運算符，在此偷偷結算前面步驟 (僅作用於底層，不動Memo)
+                let computation;
+                const prev = parseFloat(previousOperand);
+                const current = parseFloat(currentOperand);
+                if (!isNaN(prev) && !isNaN(current)) {
+                    switch (operation) {
+                        case '+': computation = prev + current; break;
+                        case '-': computation = prev - current; break;
+                        case '×': computation = prev * current; break;
+                        case '÷': computation = current === 0 ? "錯誤" : prev / current; break;
+                    }
+                    if(computation !== "錯誤") currentOperand = parseFloat(computation.toFixed(10)).toString();
+                    else currentOperand = "錯誤";
+                }
             }
             
             operation = op;
@@ -314,6 +640,7 @@
             operation = undefined;
             shouldResetDisplay = false;
             updateDisplay();
+            clearMemo(); // 點擊 AC 時同步清除 Memo 內容
         }
 
         function deleteNumber() {
@@ -326,25 +653,47 @@
             
             currentOperand = currentOperand.toString().slice(0, -1);
             if (currentOperand === '') currentOperand = '0';
+            
+            // 同步刪除 Memo 中的最後一個字元 (退位)
+            memoInput.value = memoInput.value.slice(0, -1);
+            syncInputModeDisplay();
+            
             updateDisplay();
         }
 
         function compute() {
+            const mode = document.getElementById('mode-selector').value;
+
+            // --- 解決嚴重 BUG ---
+            // 按「=」時無論何種模式，都「不會」再將「=」寫入 memoInput.value 裡！
+            const totalSum = calculateMemoValue();
+            
+            if (mode === 'input') {
+                const inputDisplay = document.getElementById('input-display-container');
+                
+                // 只有「視覺上」在畫面底部呈現總計結果，絕不影響原 memo 資料
+                inputDisplay.innerText = memoInput.value.trimEnd() + '\n\n= ' + totalSum;
+                inputDisplay.scrollTop = inputDisplay.scrollHeight;
+                
+                memoResult.innerText = `總計: ${totalSum}`; // 同步背面結果
+                
+                currentOperand = totalSum.toString();
+                operation = undefined;
+                previousOperand = '';
+                shouldResetDisplay = true;
+                return;
+            }
+
+            // 一般計算機模式下的計算處理
             let computation;
             const prev = parseFloat(previousOperand);
             const current = parseFloat(currentOperand);
             if (isNaN(prev) || isNaN(current)) return;
 
             switch (operation) {
-                case '+':
-                    computation = prev + current;
-                    break;
-                case '-':
-                    computation = prev - current;
-                    break;
-                case '×':
-                    computation = prev * current;
-                    break;
+                case '+': computation = prev + current; break;
+                case '-': computation = prev - current; break;
+                case '×': computation = prev * current; break;
                 case '÷':
                     if (current === 0) {
                         currentOperand = "錯誤";
@@ -355,20 +704,23 @@
                     }
                     computation = prev / current;
                     break;
-                default:
-                    return;
+                default: return;
             }
 
-            // 修正浮點數精度問題 (例如 0.1 + 0.2)
             currentOperand = parseFloat(computation.toFixed(10)).toString();
             operation = undefined;
             previousOperand = '';
             shouldResetDisplay = true;
             updateDisplay();
+            
+            // 背景默默同步背面的合計結果
+            memoResult.innerText = `總計: ${totalSum}`;
         }
 
         // 鍵盤支援
         window.addEventListener('keydown', (e) => {
+            if (document.activeElement === memoInput) return;
+
             if (e.key >= 0 && e.key <= 9) appendNumber(e.key);
             if (e.key === '.') appendNumber('.');
             if (e.key === '=' || e.key === 'Enter') compute();
