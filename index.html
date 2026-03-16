@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PWA 簡單計算機</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
@@ -11,11 +11,13 @@
             --bg-color: #f3f4f6;
             --calc-bg: #ffffff;
             --text-primary: #1f2937;
+            --text-secondary: #6b7280;
             --accent: #2563eb;
             --btn-bg: #e5e7eb;
             --btn-hover: #d1d5db;
             --op-bg: #3b82f6;
             --op-hover: #2563eb;
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
         @media (prefers-color-scheme: dark) {
@@ -23,12 +25,19 @@
                 --bg-color: #111827;
                 --calc-bg: #1f2937;
                 --text-primary: #f9fafb;
+                --text-secondary: #9ca3af;
                 --accent: #3b82f6;
                 --btn-bg: #374151;
                 --btn-hover: #4b5563;
                 --op-bg: #2563eb;
                 --op-hover: #1d4ed8;
+                --shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
             }
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -39,26 +48,33 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
+            padding: 10px;
             transition: background-color 0.3s;
+            overflow: hidden; /* 防止滾動 */
         }
 
+        /* 核心佈局 */
         .calculator {
             background-color: var(--calc-bg);
             width: 100%;
-            max-width: 360px;
-            padding: 20px;
+            max-width: 380px;
+            padding: 24px;
             border-radius: 24px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow);
             user-select: none;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        /* 顯示螢幕 */
         .display {
             margin-bottom: 20px;
             text-align: right;
             padding: 20px;
             background: rgba(0, 0, 0, 0.05);
-            border-radius: 12px;
-            min-height: 80px;
+            border-radius: 16px;
+            min-height: 100px;
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
@@ -67,17 +83,20 @@
         }
 
         .prev-operand {
-            font-size: 1rem;
-            color: #6b7280;
-            margin-bottom: 4px;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            min-height: 1.2em;
         }
 
         .curr-operand {
-            font-size: 2.25rem;
+            font-size: 2.5rem;
             color: var(--text-primary);
             font-weight: bold;
+            line-height: 1;
         }
 
+        /* 按鈕網格 */
         .buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -87,9 +106,9 @@
         button {
             border: none;
             outline: none;
-            padding: 16px;
-            font-size: 1.25rem;
-            border-radius: 12px;
+            padding: 18px;
+            font-size: 1.4rem;
+            border-radius: 14px;
             cursor: pointer;
             background-color: var(--btn-bg);
             color: var(--text-primary);
@@ -97,23 +116,26 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            font-weight: 500;
         }
 
         button:active {
-            transform: scale(0.95);
+            transform: scale(0.92);
+            filter: brightness(0.9);
         }
 
-        button:hover {
-            background-color: var(--btn-hover);
+        @media (hover: hover) {
+            button:hover {
+                background-color: var(--btn-hover);
+            }
+            button.operator:hover {
+                background-color: var(--op-hover);
+            }
         }
 
         button.operator {
             background-color: var(--op-bg);
             color: white;
-        }
-
-        button.operator:hover {
-            background-color: var(--op-hover);
         }
 
         button.span-two {
@@ -124,7 +146,54 @@
             color: #ef4444;
         }
 
-        /* 安裝提示橫幅樣式 */
+        /* --- 橫向模式 (Landscape) 優化 --- */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .calculator {
+                flex-direction: row;
+                max-width: 95vw;
+                height: 90vh;
+                gap: 20px;
+                padding: 16px;
+            }
+
+            .display {
+                flex: 1;
+                margin-bottom: 0;
+                height: 100%;
+                justify-content: center;
+            }
+
+            .buttons {
+                flex: 1.5;
+                gap: 8px;
+            }
+
+            button {
+                padding: 10px;
+                font-size: 1.1rem;
+                border-radius: 10px;
+            }
+
+            .curr-operand {
+                font-size: 2rem;
+            }
+            
+            .prev-operand {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* --- 大螢幕 (Desktop) 優化 --- */
+        @media (min-width: 1024px) {
+            .calculator {
+                max-width: 420px;
+            }
+            button {
+                padding: 22px;
+            }
+        }
+
+        /* 安裝提示橫幅 */
         #install-banner {
             position: fixed;
             bottom: 20px;
@@ -132,12 +201,19 @@
             transform: translateX(-50%);
             background: var(--accent);
             color: white;
-            padding: 12px 24px;
+            padding: 12px 28px;
             border-radius: 50px;
             display: none;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            font-weight: bold;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
         }
     </style>
 </head>
@@ -174,18 +250,26 @@
         </div>
     </div>
 
-    <div id="install-banner">安裝計算機到桌面</div>
+    <div id="install-banner">安裝到桌面</div>
 
     <script>
         let currentOperand = '0';
         let previousOperand = '';
         let operation = undefined;
+        let shouldResetDisplay = false;
 
         const currDisplayElement = document.getElementById('curr-display');
         const prevDisplayElement = document.getElementById('prev-display');
 
         function updateDisplay() {
-            currDisplayElement.innerText = currentOperand;
+            // 處理數字過長顯示
+            let displayValue = currentOperand;
+            if (displayValue.length > 10) {
+                displayValue = parseFloat(displayValue).toPrecision(8);
+            }
+            
+            currDisplayElement.innerText = displayValue;
+            
             if (operation != null) {
                 prevDisplayElement.innerText = `${previousOperand} ${operation}`;
             } else {
@@ -194,8 +278,15 @@
         }
 
         function appendNumber(number) {
+            if (shouldResetDisplay) {
+                currentOperand = '';
+                shouldResetDisplay = false;
+            }
+            
             if (number === '.' && currentOperand.includes('.')) return;
             if (currentOperand === '0' && number !== '.') {
+                currentOperand = number.toString();
+            } else if (currentOperand === '錯誤') {
                 currentOperand = number.toString();
             } else {
                 currentOperand = currentOperand.toString() + number.toString();
@@ -204,13 +295,16 @@
         }
 
         function chooseOperator(op) {
+            if (currentOperand === '錯誤') return;
             if (currentOperand === '') return;
+            
             if (previousOperand !== '') {
                 compute();
             }
+            
             operation = op;
             previousOperand = currentOperand;
-            currentOperand = '0';
+            shouldResetDisplay = true;
             updateDisplay();
         }
 
@@ -218,11 +312,18 @@
             currentOperand = '0';
             previousOperand = '';
             operation = undefined;
+            shouldResetDisplay = false;
             updateDisplay();
         }
 
         function deleteNumber() {
+            if (currentOperand === '錯誤' || shouldResetDisplay) {
+                currentOperand = '0';
+                updateDisplay();
+                return;
+            }
             if (currentOperand === '0') return;
+            
             currentOperand = currentOperand.toString().slice(0, -1);
             if (currentOperand === '') currentOperand = '0';
             updateDisplay();
@@ -247,6 +348,8 @@
                 case '÷':
                     if (current === 0) {
                         currentOperand = "錯誤";
+                        operation = undefined;
+                        previousOperand = '';
                         updateDisplay();
                         return;
                     }
@@ -256,22 +359,39 @@
                     return;
             }
 
-            currentOperand = computation.toString();
+            // 修正浮點數精度問題 (例如 0.1 + 0.2)
+            currentOperand = parseFloat(computation.toFixed(10)).toString();
             operation = undefined;
             previousOperand = '';
+            shouldResetDisplay = true;
             updateDisplay();
         }
+
+        // 鍵盤支援
+        window.addEventListener('keydown', (e) => {
+            if (e.key >= 0 && e.key <= 9) appendNumber(e.key);
+            if (e.key === '.') appendNumber('.');
+            if (e.key === '=' || e.key === 'Enter') compute();
+            if (e.key === 'Backspace') deleteNumber();
+            if (e.key === 'Escape') clearDisplay();
+            if (e.key === '+') chooseOperator('+');
+            if (e.key === '-') chooseOperator('-');
+            if (e.key === '*') chooseOperator('×');
+            if (e.key === '/') {
+                e.preventDefault();
+                chooseOperator('÷');
+            }
+        });
 
         // 註冊 Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker 註冊成功'))
-                    .catch(err => console.log('Service Worker 註冊失敗: ', err));
+                    .catch(err => console.log('SW registration failed:', err));
             });
         }
 
-        // 處理安裝提示
+        // PWA 安裝邏輯
         let deferredPrompt;
         const installBanner = document.getElementById('install-banner');
 
@@ -285,9 +405,6 @@
             installBanner.style.display = 'none';
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('使用者接受安裝');
-                }
                 deferredPrompt = null;
             });
         });
